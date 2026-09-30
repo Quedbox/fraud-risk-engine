@@ -1,0 +1,5 @@
+.venv
+data/raw
+.DS_Store
+.idea/
+a/
