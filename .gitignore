@@ -3,3 +3,4 @@ data/raw
 .DS_Store
 .idea/
 a/
+src/fraud_risk/__pycache__

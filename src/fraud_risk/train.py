@@ -28,6 +28,14 @@ DATA_PATH = PROJECT_DIR / 'data' / 'raw' / 'Base.csv'
 EXCLUDED_COLS = [TARGET, 'month']
 
 
+def train_and_eval_model(model, X_train, y_train, X_val, y_val, fit_kwargs=None):
+    model.fit(X_train, y_train, **(fit_kwargs or {}))
+    y_score = model.predict_proba(X_val)[:,1]
+    roc_auc, ap_score = evaluate_model(y_val, y_score)
+    print(f"ROC-AUC: {roc_auc:.4f}")
+    print(f"PR-AUC (AP): {ap_score:.4f}")
+
+
 full_raw_data = load_data(DATA_PATH)
 featured_full_data = add_features(full_raw_data)
 train, val, test = split_data(featured_full_data)
@@ -43,14 +51,18 @@ categorical_cols = X_train.select_dtypes(include=['str', 'category']).columns.to
 
 preprocessor = make_preprocessor(numeric_cols=numeric_cols, cat_cols=categorical_cols)
 
-model = Pipeline([
-    ('preprocessing', preprocessor),
-    ('classifier', LogisticRegression(max_iter=1000))
-])
+models = {
+    'Dummy': DummyClassifier(),
+    'LogisticRegression': Pipeline([
+        ('preprocessing', make_preprocessor(numeric_cols=numeric_cols, cat_cols=categorical_cols)),
+        ('classifier', LogisticRegression(max_iter=1000, random_state=RANDOM_STATE))
+    ]),
+    'CatBoost': CatBoostClassifier(random_seed=RANDOM_STATE,
+                                   cat_features=categorical_cols, 
+                                   verbose=False, 
+                                   eval_metric='PRAUC')
+}
 
-model.fit(X_train, y_train)
-y_score = model.predict_proba(X_val)[:,1]
-roc_auc, ap_score = evaluate_model(y_val, y_score)
-
-print(f"ROC-AUC: {roc_auc:.4f}")
-print(f"PR-AUC (AP): {ap_score:.4f}")
+for model_name, model in models.items():
+    print(f"Model: {model_name}")
+    train_and_eval_model(model, X_train, y_train, X_val, y_val)
