@@ -4,3 +4,5 @@ data/raw
 .idea/
 a/
 src/fraud_risk/__pycache__
+/catboost_info/
+/.vscode
